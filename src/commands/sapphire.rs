@@ -29,7 +29,18 @@ pub fn run(subcommand: SapphireCommand) -> anyhow::Result<()> {
             use_version(&paths, &version)?;
         }
         SapphireCommand::Current => {
-            println!("not yet implemented: sapphire current");
+            let cwd = std::env::current_dir()?;
+            match crate::version::resolve(&cwd, &paths)? {
+                Some(r) => {
+                    let source = match r.source {
+                        crate::version::VersionSource::EnvVar => "SAPPHIRE_VERSION",
+                        crate::version::VersionSource::ProjectPin => "project pin",
+                        crate::version::VersionSource::GlobalDefault => "global default",
+                    };
+                    println!("{} ({})", r.version, source);
+                }
+                None => println!("none"),
+            }
         }
         SapphireCommand::Default { version } => {
             set_default_version(&paths, &version)?;
