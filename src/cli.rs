@@ -21,6 +21,16 @@ pub enum SapphireCommand {
     },
     /// Show the active Sapphire version
     Current,
+    /// Set the global default Sapphire version
+    Default {
+        /// Version to set as default (e.g. "1.2.0")
+        version: String,
+    },
+    /// Pin the Sapphire version for the current project
+    Pin {
+        /// Version to pin in facet.toml
+        version: String,
+    },
 }
 
 #[derive(Subcommand)]

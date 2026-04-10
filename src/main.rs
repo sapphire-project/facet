@@ -1,9 +1,14 @@
+#![allow(dead_code)]
+
 use clap::{Parser, Subcommand};
 use std::process;
 
 mod cli;
 mod commands;
+mod config;
+mod manifest;
 mod paths;
+mod version;
 
 use cli::{SapphireCommand, SelfCommand};
 
