@@ -3,7 +3,11 @@ use clap::Subcommand;
 #[derive(Subcommand)]
 pub enum SapphireCommand {
     /// List installed Sapphire versions
-    List,
+    List {
+        /// List versions available on GitHub instead of locally installed ones
+        #[arg(long)]
+        remote: bool,
+    },
     /// Install a Sapphire version
     Install {
         /// Version to install (e.g. "1.0.0" or "latest")

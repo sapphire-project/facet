@@ -2,8 +2,8 @@ use anyhow::{bail, Context, Result};
 use sha2::{Digest, Sha256};
 use std::path::Path;
 
-const GITHUB_REPO: &str = "sapphire-project/sapphire";
-const GITHUB_API_BASE: &str = "https://api.github.com";
+pub(crate) const GITHUB_REPO: &str = "sapphire-project/sapphire";
+pub(crate) const GITHUB_API_BASE: &str = "https://api.github.com";
 
 // ── GitHub API types ─────────────────────────────────────────────────────────
 
@@ -159,6 +159,39 @@ fn write_binary(data: &[u8], dest: &Path) -> Result<()> {
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
+
+/// Fetch the list of available Sapphire versions from GitHub Releases.
+///
+/// Returns versions in descending order (newest first), with the `v` prefix stripped.
+pub fn fetch_versions() -> Result<Vec<String>> {
+    let client = http_client()?;
+    let url = format!("{GITHUB_API_BASE}/repos/{GITHUB_REPO}/releases?per_page=100");
+
+    let resp = client
+        .get(&url)
+        .send()
+        .context("network error reaching GitHub API")?;
+
+    if !resp.status().is_success() {
+        bail!("GitHub API error {} for {url}", resp.status());
+    }
+
+    #[derive(serde::Deserialize)]
+    struct Release {
+        tag_name: String,
+        prerelease: bool,
+    }
+
+    let releases: Vec<Release> = resp
+        .json()
+        .context("failed to parse GitHub releases response")?;
+
+    Ok(releases
+        .into_iter()
+        .filter(|r| !r.prerelease)
+        .map(|r| r.tag_name.trim_start_matches('v').to_string())
+        .collect())
+}
 
 /// Download and install a Sapphire version into `toolchains_dir`.
 ///
