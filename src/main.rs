@@ -12,7 +12,7 @@ mod paths;
 mod ui;
 mod version;
 
-use cli::{SapphireCommand, SelfCommand};
+use cli::SapphireCommand;
 
 #[derive(Parser)]
 #[command(
@@ -75,12 +75,8 @@ enum Command {
     /// Print facet and active Sapphire versions
     Version,
 
-    /// Manage facet itself
-    #[command(name = "self")]
-    SelfCmd {
-        #[command(subcommand)]
-        subcommand: SelfCommand,
-    },
+    /// Show facet binary path and data directory locations
+    Info,
 }
 
 fn main() {
@@ -104,7 +100,7 @@ fn main() {
             }
             Ok(())
         }
-        Some(Command::SelfCmd { subcommand }) => commands::self_cmd::run(subcommand),
+        Some(Command::Info) => commands::self_cmd::info(),
         None => {
             if cli.passthrough.is_empty() {
                 eprintln!("No command provided. Run `facet --help` for usage.");

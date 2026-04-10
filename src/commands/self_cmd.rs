@@ -1,16 +1,6 @@
-use crate::cli::SelfCommand;
 use crate::paths::Paths;
 
-pub fn run(subcommand: SelfCommand) -> anyhow::Result<()> {
-    match subcommand {
-        SelfCommand::Info => {
-            info()?;
-        }
-    }
-    Ok(())
-}
-
-fn info() -> anyhow::Result<()> {
+pub fn info() -> anyhow::Result<()> {
     let paths = Paths::new();
 
     let exe = std::env::current_exe()
@@ -19,10 +9,10 @@ fn info() -> anyhow::Result<()> {
 
     println!("facet {}", env!("CARGO_PKG_VERSION"));
     println!();
-    println!("  binary    {exe}");
+    println!("  binary     {exe}");
     println!("  toolchains {}", paths.toolchains_dir().display());
-    println!("  config    {}", paths.config_file().display());
-    println!("  cache     {}", paths.cache_dir().display());
+    println!("  config     {}", paths.config_file().display());
+    println!("  cache      {}", paths.cache_dir().display());
 
     Ok(())
 }

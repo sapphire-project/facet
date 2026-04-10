@@ -50,7 +50,7 @@ facet run
 
 | Command | Description |
 |---------|-------------|
-| `facet self info` | Show facet binary path and data directory locations |
+| `facet info` | Show facet binary path and data directory locations |
 
 ## Version resolution
 
@@ -77,7 +77,7 @@ facet follows the [XDG Base Directory](https://specifications.freedesktop.org/ba
 | `$XDG_CONFIG_HOME/facet/facet.toml` | Global facet configuration |
 | `$XDG_CACHE_HOME/facet/` | Cache |
 
-Run `facet self info` to see the resolved paths on your system.
+Run `facet info` to see the resolved paths on your system.
 
 ## Building from source
 

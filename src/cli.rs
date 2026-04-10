@@ -37,8 +37,3 @@ pub enum SapphireCommand {
     },
 }
 
-#[derive(Subcommand)]
-pub enum SelfCommand {
-    /// Show facet installation info
-    Info,
-}
