@@ -3,6 +3,7 @@ use std::process;
 
 mod cli;
 mod commands;
+mod paths;
 
 use cli::{SapphireCommand, SelfCommand};
 
