@@ -9,6 +9,7 @@ mod config;
 mod download;
 mod manifest;
 mod paths;
+mod ui;
 mod version;
 
 use cli::{SapphireCommand, SelfCommand};

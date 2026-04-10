@@ -1,6 +1,9 @@
 use anyhow::{Context, Result, bail};
 use sha2::{Digest, Sha256};
+use std::io::Read;
 use std::path::Path;
+
+use crate::ui;
 
 pub(crate) const GITHUB_REPO: &str = "sapphire-project/sapphire";
 pub(crate) const GITHUB_API_BASE: &str = "https://api.github.com";
@@ -82,6 +85,8 @@ fn fetch_release(client: &reqwest::blocking::Client, version: &str) -> Result<Gi
         format!("{GITHUB_API_BASE}/repos/{GITHUB_REPO}/releases/tags/{tag}")
     };
 
+    let sp = ui::spinner(format!("Fetching release info for Sapphire {version}..."));
+
     let resp = client
         .get(&url)
         .send()
@@ -89,21 +94,25 @@ fn fetch_release(client: &reqwest::blocking::Client, version: &str) -> Result<Gi
 
     let status = resp.status();
     if status == reqwest::StatusCode::NOT_FOUND {
+        sp.finish_and_clear();
         bail!("Sapphire version `{version}` not found on GitHub");
     }
     if !status.is_success() {
+        sp.finish_and_clear();
         bail!("GitHub API error {status} for {url}");
     }
 
-    resp.json::<GithubRelease>()
-        .context("failed to parse GitHub release response")
+    let release = resp
+        .json::<GithubRelease>()
+        .context("failed to parse GitHub release response")?;
+
+    sp.finish_and_clear();
+    Ok(release)
 }
 
-// ── Download + verify ─────────────────────────────────────────────────────────
+// ── Download + verify ────────────────────────────────────────────────────────
 
 fn download_and_verify(client: &reqwest::blocking::Client, asset: &GithubAsset) -> Result<Vec<u8>> {
-    eprint!("  Downloading {}... ", asset.name);
-
     let resp = client
         .get(&asset.browser_download_url)
         .send()
@@ -117,32 +126,47 @@ fn download_and_verify(client: &reqwest::blocking::Client, asset: &GithubAsset) 
         );
     }
 
-    let bytes = resp
-        .bytes()
-        .with_context(|| format!("failed to read response body for {}", asset.name))?
-        .to_vec();
+    // Drive a progress bar by streaming the body in chunks.
+    let content_length = resp.content_length();
+    let pb = match content_length {
+        Some(total) => ui::download_bar(total, &asset.name),
+        None => ui::download_spinner(&asset.name),
+    };
 
-    eprintln!("{:.1} MiB", bytes.len() as f64 / 1_048_576.0);
+    let mut body = Vec::with_capacity(content_length.unwrap_or(0) as usize);
+    let mut buf = [0u8; 32 * 1024];
+    let mut stream = resp;
+    loop {
+        let n = stream
+            .read(&mut buf)
+            .with_context(|| format!("failed to read response body for {}", asset.name))?;
+        if n == 0 {
+            break;
+        }
+        body.extend_from_slice(&buf[..n]);
+        pb.inc(n as u64);
+    }
 
     if let Some(expected) = asset.sha256_hex() {
-        eprint!("  Verifying checksum... ");
         let mut hasher = Sha256::new();
-        hasher.update(&bytes);
+        hasher.update(&body);
         let actual: String = hasher
             .finalize()
             .iter()
             .map(|b| format!("{b:02x}"))
             .collect();
         if actual != expected {
+            pb.finish_and_clear();
             bail!(
                 "checksum mismatch for {}\n  expected: {expected}\n  actual:   {actual}",
                 asset.name
             );
         }
-        eprintln!("OK.");
+        ui::success(&pb, format!("{} — checksum OK", asset.name));
     }
 
-    Ok(bytes)
+    pb.finish_and_clear();
+    Ok(body)
 }
 
 // ── Install ───────────────────────────────────────────────────────────────────
@@ -176,12 +200,15 @@ pub fn fetch_versions() -> Result<Vec<String>> {
     let client = http_client()?;
     let url = format!("{GITHUB_API_BASE}/repos/{GITHUB_REPO}/releases?per_page=100");
 
+    let sp = ui::spinner("Fetching available Sapphire versions...");
+
     let resp = client
         .get(&url)
         .send()
         .context("network error reaching GitHub API")?;
 
     if !resp.status().is_success() {
+        sp.finish_and_clear();
         bail!("GitHub API error {} for {url}", resp.status());
     }
 
@@ -194,6 +221,8 @@ pub fn fetch_versions() -> Result<Vec<String>> {
     let releases: Vec<Release> = resp
         .json()
         .context("failed to parse GitHub releases response")?;
+
+    sp.finish_and_clear();
 
     Ok(releases
         .into_iter()
@@ -209,10 +238,7 @@ pub fn fetch_versions() -> Result<Vec<String>> {
 /// Returns the resolved version string (useful when `"latest"` is passed).
 pub fn install(version: &str, toolchains_dir: &Path) -> Result<String> {
     let client = http_client()?;
-
-    eprintln!("Fetching Sapphire release info ({version})...");
     let release = fetch_release(&client, version)?;
-
     let resolved = release.tag_name.trim_start_matches('v').to_string();
 
     let bin_path = toolchains_dir.join(&resolved).join("bin").join("sapphire");
@@ -241,11 +267,11 @@ pub fn install(version: &str, toolchains_dir: &Path) -> Result<String> {
 
     let data = download_and_verify(&client, asset)?;
 
-    eprint!("  Installing to {}... ", bin_path.display());
+    let sp = ui::spinner(format!("Installing to {}...", bin_path.display()));
     write_binary(&data, &bin_path)?;
-    eprintln!("done.");
+    ui::success(&sp, format!("Installed Sapphire {resolved}"));
+    sp.finish_and_clear();
 
-    eprintln!("Installed Sapphire {resolved}.");
     Ok(resolved)
 }
 
