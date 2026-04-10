@@ -36,4 +36,3 @@ pub enum SapphireCommand {
         version: String,
     },
 }
-
