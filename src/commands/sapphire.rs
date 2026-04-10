@@ -23,7 +23,7 @@ pub fn run(subcommand: SapphireCommand) -> anyhow::Result<()> {
             }
         }
         SapphireCommand::Uninstall { version } => {
-            println!("not yet implemented: sapphire uninstall {version}");
+            uninstall(&paths, &version)?;
         }
         SapphireCommand::Use { version } => {
             println!("not yet implemented: sapphire use {version}");
@@ -81,6 +81,30 @@ fn list_local(paths: &Paths) -> anyhow::Result<()> {
         } else {
             println!("  {v}");
         }
+    }
+
+    Ok(())
+}
+
+fn uninstall(paths: &Paths, version: &str) -> anyhow::Result<()> {
+    let version = version.trim_start_matches('v');
+    let dir = paths.toolchain_dir(version);
+
+    if !dir.exists() {
+        anyhow::bail!("Sapphire {version} is not installed");
+    }
+
+    std::fs::remove_dir_all(&dir)
+        .with_context(|| format!("failed to remove {}", dir.display()))?;
+
+    // If this was the global default, clear it so we don't point at a ghost.
+    let mut config = GlobalConfig::load(paths)?;
+    if config.toolchain.default.as_deref() == Some(version) {
+        config.toolchain.default = None;
+        config.save(paths)?;
+        println!("Uninstalled Sapphire {version} (was global default; default cleared)");
+    } else {
+        println!("Uninstalled Sapphire {version}");
     }
 
     Ok(())
