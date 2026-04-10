@@ -9,8 +9,8 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-    name: Build release binaries
+  build-macos:
+    name: Build macOS binaries
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -47,26 +47,71 @@ jobs:
             shasum -a 256 "dist/${ASSET}.tar.gz" > "dist/${ASSET}.tar.gz.sha256"
           done
 
-      - name: Upload build artifacts
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: release-binaries
+          name: release-macos
+          path: dist/*.tar.gz*
+          if-no-files-found: error
+
+  build-linux:
+    name: Build Linux binaries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-musl
+
+      - name: Install musl tools
+        run: sudo apt-get install -y musl-tools
+
+      - name: Cache cargo registry and build artifacts
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Build release binary
+        run: cargo build --release --locked --target x86_64-unknown-linux-musl
+
+      - name: Package tarball and checksum
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          TARGET="x86_64-unknown-linux-musl"
+          ASSET="facet-${VERSION}-x86_64-linux"
+          mkdir -p "dist/${ASSET}"
+          cp "target/${TARGET}/release/facet" "dist/${ASSET}/facet"
+          tar -czf "dist/${ASSET}.tar.gz" -C dist "${ASSET}"
+          sha256sum "dist/${ASSET}.tar.gz" > "dist/${ASSET}.tar.gz.sha256"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux
           path: dist/*.tar.gz*
           if-no-files-found: error
 
   release:
     name: Create GitHub Release
-    needs: build
+    needs: [build-macos, build-linux]
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
-      - name: Download release artifacts
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          name: release-binaries
           path: dist/
+          merge-multiple: true
 
       - name: Create release and upload assets
         uses: softprops/action-gh-release@v2

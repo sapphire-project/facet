@@ -33,13 +33,17 @@ impl GithubAsset {
 // ── Platform ─────────────────────────────────────────────────────────────────
 
 fn platform_asset_name() -> &'static str {
-    #[cfg(target_arch = "aarch64")]
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     {
         "sapphire-macos-aarch64"
     }
-    #[cfg(not(target_arch = "aarch64"))]
+    #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
     {
         "sapphire-macos-x86_64"
+    }
+    #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
+    {
+        "sapphire-linux-x86_64"
     }
 }
 
@@ -272,8 +276,12 @@ mod tests {
     }
 
     #[test]
-    fn platform_asset_is_macos() {
-        assert!(platform_asset_name().starts_with("sapphire-macos-"));
+    fn platform_asset_name_is_known() {
+        let name = platform_asset_name();
+        assert!(
+            name.starts_with("sapphire-macos-") || name.starts_with("sapphire-linux-"),
+            "unexpected asset name: {name}"
+        );
     }
 
     #[test]
