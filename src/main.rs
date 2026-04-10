@@ -1,3 +1,127 @@
+use clap::{Parser, Subcommand};
+use std::process;
+
+mod cli;
+mod commands;
+
+use cli::{SapphireCommand, SelfCommand};
+
+#[derive(Parser)]
+#[command(
+    name = "facet",
+    about = "The official toolchain manager and project CLI for the Sapphire programming language",
+    version,
+    arg_required_else_help = true,
+)]
+struct Cli {
+    #[command(subcommand)]
+    command: Option<Command>,
+
+    /// Arguments passed through to the active Sapphire binary
+    #[arg(trailing_var_arg = true, allow_hyphen_values = true, hide = true)]
+    passthrough: Vec<String>,
+}
+
+#[derive(Subcommand)]
+enum Command {
+    /// Manage Sapphire toolchain installations
+    Sapphire {
+        #[command(subcommand)]
+        subcommand: SapphireCommand,
+    },
+
+    /// Create a new Sapphire project
+    New {
+        /// Project name
+        name: String,
+        /// Project template
+        #[arg(long, default_value = "application")]
+        template: String,
+    },
+
+    /// Initialise a Sapphire project in the current directory
+    Init {
+        /// Project name (defaults to directory name)
+        name: Option<String>,
+    },
+
+    /// Add a dependency to the current project
+    Add {
+        /// Package name(s) to add
+        #[arg(required = true)]
+        packages: Vec<String>,
+    },
+
+    /// Remove a dependency from the current project
+    Remove {
+        /// Package name(s) to remove
+        #[arg(required = true)]
+        packages: Vec<String>,
+    },
+
+    /// Install project dependencies
+    Install,
+
+    /// Run a project script or binary
+    Run {
+        /// Script or binary to run
+        script: Option<String>,
+        /// Additional arguments
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+
+    /// Run the project test suite
+    Test {
+        /// Additional arguments passed to the test runner
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+
+    /// Run the linter
+    Lint {
+        /// Additional arguments passed to the linter
+        #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
+        args: Vec<String>,
+    },
+
+    /// Start an interactive Sapphire console (REPL)
+    Console,
+
+    /// Manage facet itself
+    #[command(name = "self")]
+    SelfCmd {
+        #[command(subcommand)]
+        subcommand: SelfCommand,
+    },
+}
+
 fn main() {
-    println!("Hello, world!");
+    let cli = Cli::parse();
+
+    let result = match cli.command {
+        Some(Command::Sapphire { subcommand }) => commands::sapphire::run(subcommand),
+        Some(Command::New { name, template }) => commands::new::run(name, template),
+        Some(Command::Init { name }) => commands::init::run(name),
+        Some(Command::Add { packages }) => commands::add::run(packages),
+        Some(Command::Remove { packages }) => commands::remove::run(packages),
+        Some(Command::Install) => commands::install::run(),
+        Some(Command::Run { script, args }) => commands::run::run(script, args),
+        Some(Command::Test { args }) => commands::test::run(args),
+        Some(Command::Lint { args }) => commands::lint::run(args),
+        Some(Command::Console) => commands::console::run(),
+        Some(Command::SelfCmd { subcommand }) => commands::self_cmd::run(subcommand),
+        None => {
+            if cli.passthrough.is_empty() {
+                eprintln!("No command provided. Run `facet --help` for usage.");
+                process::exit(1);
+            }
+            commands::passthrough::run(cli.passthrough)
+        }
+    };
+
+    if let Err(e) = result {
+        eprintln!("error: {e}");
+        process::exit(1);
+    }
 }
