@@ -4,7 +4,11 @@ The official toolchain manager and project CLI for the [Sapphire](https://github
 
 ## Installation
 
-Download the latest release for your platform from the [releases page](https://github.com/sapphire-project/facet/releases) and place the binary somewhere on your `PATH`.
+```sh
+cargo install --git https://github.com/sapphire-project/facet
+```
+
+Or download a pre-built binary from the [releases page](https://github.com/sapphire-project/facet/releases) and place it somewhere on your `PATH`.
 
 ## Quick start
 
