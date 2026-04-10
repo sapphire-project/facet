@@ -39,10 +39,6 @@ pub enum SapphireCommand {
 
 #[derive(Subcommand)]
 pub enum SelfCommand {
-    /// Update facet to the latest version
-    Update,
-    /// Uninstall facet
-    Uninstall,
     /// Show facet installation info
     Info,
 }
