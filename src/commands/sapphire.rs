@@ -26,7 +26,7 @@ pub fn run(subcommand: SapphireCommand) -> anyhow::Result<()> {
             uninstall(&paths, &version)?;
         }
         SapphireCommand::Use { version } => {
-            println!("not yet implemented: sapphire use {version}");
+            use_version(&paths, &version)?;
         }
         SapphireCommand::Current => {
             println!("not yet implemented: sapphire current");
@@ -83,6 +83,25 @@ fn list_local(paths: &Paths) -> anyhow::Result<()> {
         }
     }
 
+    Ok(())
+}
+
+fn use_version(paths: &Paths, version: &str) -> anyhow::Result<()> {
+    let version = version.trim_start_matches('v');
+    let bin = paths
+        .toolchain_dir(version)
+        .join("bin")
+        .join("sapphire");
+
+    if !bin.exists() {
+        anyhow::bail!(
+            "Sapphire {version} is not installed\n\
+             hint: run `facet sapphire install {version}` first"
+        );
+    }
+
+    set_default_version(paths, version)?;
+    println!("Now using Sapphire {version}");
     Ok(())
 }
 
