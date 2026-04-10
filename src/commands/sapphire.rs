@@ -1,5 +1,6 @@
 use crate::cli::SapphireCommand;
 use crate::config::set_default_version;
+use crate::download;
 use crate::manifest::pin_version;
 use crate::paths::Paths;
 
@@ -11,7 +12,10 @@ pub fn run(subcommand: SapphireCommand) -> anyhow::Result<()> {
             println!("not yet implemented: sapphire list");
         }
         SapphireCommand::Install { version } => {
-            println!("not yet implemented: sapphire install {version}");
+            let resolved = download::install(&version, &paths.toolchains_dir())?;
+            if resolved != version && version != "latest" {
+                println!("Installed Sapphire {resolved}");
+            }
         }
         SapphireCommand::Uninstall { version } => {
             println!("not yet implemented: sapphire uninstall {version}");

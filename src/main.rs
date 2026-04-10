@@ -6,6 +6,7 @@ use std::process;
 mod cli;
 mod commands;
 mod config;
+mod download;
 mod manifest;
 mod paths;
 mod version;
