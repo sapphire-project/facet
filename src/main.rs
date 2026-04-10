@@ -46,12 +46,6 @@ enum Command {
         template: String,
     },
 
-    /// Initialise a Sapphire project in the current directory
-    Init {
-        /// Project name (defaults to directory name)
-        name: Option<String>,
-    },
-
     /// Add a dependency to the current project
     Add {
         /// Package name(s) to add
@@ -112,7 +106,6 @@ fn main() {
     let result = match cli.command {
         Some(Command::Sapphire { subcommand }) => commands::sapphire::run(subcommand),
         Some(Command::New { name, template }) => commands::new::run(name, template),
-        Some(Command::Init { name }) => commands::init::run(name),
         Some(Command::Add { packages }) => commands::add::run(packages),
         Some(Command::Remove { packages }) => commands::remove::run(packages),
         Some(Command::Install) => commands::install::run(),

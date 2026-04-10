@@ -1,6 +1,5 @@
 pub mod add;
 pub mod console;
-pub mod init;
 pub mod install;
 pub mod lint;
 pub mod new;
