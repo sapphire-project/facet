@@ -10,23 +10,15 @@ env:
 
 jobs:
   build:
-    name: Build ${{ matrix.target }}
-    runs-on: ${{ matrix.runner }}
-    strategy:
-      matrix:
-        include:
-          - target: aarch64-apple-darwin
-            runner: macos-latest
-          - target: x86_64-apple-darwin
-            runner: macos-13
-
+    name: Build release binaries
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
 
       - name: Cache cargo registry and build artifacts
         uses: actions/cache@v4
@@ -36,31 +28,30 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: ${{ runner.os }}-${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ runner.os }}-${{ matrix.target }}-cargo-
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
 
-      - name: Build release binary
-        run: cargo build --release --locked --target ${{ matrix.target }}
+      - name: Build release binaries
+        run: |
+          cargo build --release --locked --target aarch64-apple-darwin
+          cargo build --release --locked --target x86_64-apple-darwin
 
-      - name: Package tarball
+      - name: Package tarballs and checksums
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          ASSET="facet-${VERSION}-${{ matrix.target }}"
-          mkdir -p "dist/${ASSET}"
-          cp "target/${{ matrix.target }}/release/facet" "dist/${ASSET}/facet"
-          tar -czf "dist/${ASSET}.tar.gz" -C dist "${ASSET}"
-          echo "ASSET=${ASSET}" >> "$GITHUB_ENV"
-          echo "VERSION=${VERSION}" >> "$GITHUB_ENV"
-
-      - name: Compute SHA-256 checksum
-        run: |
-          shasum -a 256 "dist/${ASSET}.tar.gz" > "dist/${ASSET}.tar.gz.sha256"
+          for TARGET in aarch64-apple-darwin x86_64-apple-darwin; do
+            ASSET="facet-${VERSION}-${TARGET}"
+            mkdir -p "dist/${ASSET}"
+            cp "target/${TARGET}/release/facet" "dist/${ASSET}/facet"
+            tar -czf "dist/${ASSET}.tar.gz" -C dist "${ASSET}"
+            shasum -a 256 "dist/${ASSET}.tar.gz" > "dist/${ASSET}.tar.gz.sha256"
+          done
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.ASSET }}
-          path: dist/${{ env.ASSET }}.tar.gz*
+          name: release-binaries
+          path: dist/*.tar.gz*
           if-no-files-found: error
 
   release:
@@ -71,11 +62,11 @@ jobs:
       contents: write
 
     steps:
-      - name: Download all artifacts
+      - name: Download release artifacts
         uses: actions/download-artifact@v4
         with:
+          name: release-binaries
           path: dist/
-          merge-multiple: true
 
       - name: Create release and upload assets
         uses: softprops/action-gh-release@v2
