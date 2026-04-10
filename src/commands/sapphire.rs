@@ -1,9 +1,9 @@
-use anyhow::Context;
 use crate::cli::SapphireCommand;
-use crate::config::{set_default_version, GlobalConfig};
+use crate::config::{GlobalConfig, set_default_version};
 use crate::download;
 use crate::manifest::pin_version;
 use crate::paths::Paths;
+use anyhow::Context;
 
 pub fn run(subcommand: SapphireCommand) -> anyhow::Result<()> {
     let paths = Paths::new();

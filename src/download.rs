@@ -1,4 +1,4 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use sha2::{Digest, Sha256};
 use std::path::Path;
 
@@ -49,16 +49,16 @@ fn http_client() -> Result<reqwest::blocking::Client> {
     let mut builder = reqwest::blocking::Client::builder()
         .user_agent(concat!("facet/", env!("CARGO_PKG_VERSION")));
 
-    if let Ok(token) = std::env::var("GITHUB_TOKEN") {
-        if !token.is_empty() {
-            let mut headers = reqwest::header::HeaderMap::new();
-            headers.insert(
-                reqwest::header::AUTHORIZATION,
-                reqwest::header::HeaderValue::from_str(&format!("Bearer {token}"))
-                    .context("invalid GITHUB_TOKEN value")?,
-            );
-            builder = builder.default_headers(headers);
-        }
+    if let Ok(token) = std::env::var("GITHUB_TOKEN")
+        && !token.is_empty()
+    {
+        let mut headers = reqwest::header::HeaderMap::new();
+        headers.insert(
+            reqwest::header::AUTHORIZATION,
+            reqwest::header::HeaderValue::from_str(&format!("Bearer {token}"))
+                .context("invalid GITHUB_TOKEN value")?,
+        );
+        builder = builder.default_headers(headers);
     }
 
     builder.build().context("failed to build HTTP client")
@@ -97,10 +97,7 @@ fn fetch_release(client: &reqwest::blocking::Client, version: &str) -> Result<Gi
 
 // ── Download + verify ─────────────────────────────────────────────────────────
 
-fn download_and_verify(
-    client: &reqwest::blocking::Client,
-    asset: &GithubAsset,
-) -> Result<Vec<u8>> {
+fn download_and_verify(client: &reqwest::blocking::Client, asset: &GithubAsset) -> Result<Vec<u8>> {
     eprint!("  Downloading {}... ", asset.name);
 
     let resp = client
@@ -109,7 +106,11 @@ fn download_and_verify(
         .with_context(|| format!("network error downloading {}", asset.name))?;
 
     if !resp.status().is_success() {
-        bail!("download of {} failed with HTTP {}", asset.name, resp.status());
+        bail!(
+            "download of {} failed with HTTP {}",
+            asset.name,
+            resp.status()
+        );
     }
 
     let bytes = resp
@@ -123,7 +124,11 @@ fn download_and_verify(
         eprint!("  Verifying checksum... ");
         let mut hasher = Sha256::new();
         hasher.update(&bytes);
-        let actual: String = hasher.finalize().iter().map(|b| format!("{b:02x}")).collect();
+        let actual: String = hasher
+            .finalize()
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect();
         if actual != expected {
             bail!(
                 "checksum mismatch for {}\n  expected: {expected}\n  actual:   {actual}",

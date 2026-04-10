@@ -1,6 +1,6 @@
-use anyhow::Result;
-use crate::paths::Paths;
 use super::passthrough;
+use crate::paths::Paths;
+use anyhow::Result;
 
 pub fn run(script: Option<String>, args: Vec<String>) -> Result<()> {
     let paths = Paths::new();

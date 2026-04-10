@@ -1,4 +1,4 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::path::Path;
@@ -38,15 +38,13 @@ impl Manifest {
         let path = dir.join(MANIFEST_FILE);
         let raw = std::fs::read_to_string(&path)
             .with_context(|| format!("failed to read {}", path.display()))?;
-        toml::from_str(&raw)
-            .with_context(|| format!("failed to parse {}", path.display()))
+        toml::from_str(&raw).with_context(|| format!("failed to parse {}", path.display()))
     }
 
     /// Persist `facet.toml` into the given directory.
     pub fn save(&self, dir: &Path) -> Result<()> {
         let path = dir.join(MANIFEST_FILE);
-        let contents = toml::to_string_pretty(self)
-            .context("failed to serialise manifest")?;
+        let contents = toml::to_string_pretty(self).context("failed to serialise manifest")?;
         std::fs::write(&path, contents)
             .with_context(|| format!("failed to write {}", path.display()))
     }
@@ -81,12 +79,11 @@ pub fn find_pinned_version(start: &Path) -> Option<String> {
     let mut dir = start;
     loop {
         let candidate = dir.join(MANIFEST_FILE);
-        if candidate.exists() {
-            if let Ok(manifest) = Manifest::load(dir) {
-                if let Some(v) = manifest.pinned_version() {
-                    return Some(v.to_string());
-                }
-            }
+        if candidate.exists()
+            && let Ok(manifest) = Manifest::load(dir)
+            && let Some(v) = manifest.pinned_version()
+        {
+            return Some(v.to_string());
         }
         match dir.parent() {
             Some(parent) => dir = parent,
@@ -141,10 +138,7 @@ version = "1.2.3"
     #[test]
     fn pin_version_round_trips() {
         let dir = tempfile::tempdir().unwrap();
-        write(
-            dir.path(),
-            "[package]\nname = \"x\"\nversion = \"0.1.0\"\n",
-        );
+        write(dir.path(), "[package]\nname = \"x\"\nversion = \"0.1.0\"\n");
         pin_version(dir.path(), "2.0.0").unwrap();
         let m = Manifest::load(dir.path()).unwrap();
         assert_eq!(m.pinned_version(), Some("2.0.0"));
@@ -176,10 +170,7 @@ version = "1.2.3"
             dir.path(),
             "[package]\nname = \"x\"\nversion = \"0.1.0\"\n[toolchain]\nversion = \"1.1.0\"\n",
         );
-        assert_eq!(
-            find_pinned_version(dir.path()),
-            Some("1.1.0".to_string())
-        );
+        assert_eq!(find_pinned_version(dir.path()), Some("1.1.0".to_string()));
     }
 
     #[test]
@@ -191,20 +182,14 @@ version = "1.2.3"
         );
         let sub = root.path().join("src/deep");
         fs::create_dir_all(&sub).unwrap();
-        assert_eq!(
-            find_pinned_version(&sub),
-            Some("4.0.0".to_string())
-        );
+        assert_eq!(find_pinned_version(&sub), Some("4.0.0".to_string()));
     }
 
     #[test]
     fn find_pinned_version_returns_none_when_not_found() {
         let dir = tempfile::tempdir().unwrap();
         // manifest exists but has no [toolchain] section
-        write(
-            dir.path(),
-            "[package]\nname = \"x\"\nversion = \"0.1.0\"\n",
-        );
+        write(dir.path(), "[package]\nname = \"x\"\nversion = \"0.1.0\"\n");
         assert_eq!(find_pinned_version(dir.path()), None);
     }
 }

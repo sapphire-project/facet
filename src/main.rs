@@ -18,7 +18,7 @@ use cli::{SapphireCommand, SelfCommand};
     name = "facet",
     about = "The official toolchain manager and project CLI for the Sapphire programming language",
     version,
-    arg_required_else_help = true,
+    arg_required_else_help = true
 )]
 struct Cli {
     #[command(subcommand)]

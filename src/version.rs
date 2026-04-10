@@ -28,13 +28,13 @@ pub struct ResolvedVersion {
 ///   3. Global config default
 pub fn resolve(cwd: &Path, paths: &Paths) -> Result<Option<ResolvedVersion>> {
     // 1. Env var
-    if let Ok(v) = std::env::var("SAPPHIRE_VERSION") {
-        if !v.is_empty() {
-            return Ok(Some(ResolvedVersion {
-                version: v,
-                source: VersionSource::EnvVar,
-            }));
-        }
+    if let Ok(v) = std::env::var("SAPPHIRE_VERSION")
+        && !v.is_empty()
+    {
+        return Ok(Some(ResolvedVersion {
+            version: v,
+            source: VersionSource::EnvVar,
+        }));
     }
 
     // 2. Project pin

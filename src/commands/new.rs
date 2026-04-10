@@ -1,4 +1,4 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use std::path::Path;
 
 use crate::manifest::{Manifest, PackageMetadata, ToolchainPin};
@@ -42,9 +42,7 @@ pub fn run(name: String, template: String) -> Result<()> {
     let main_sp = src_dir.join("main.sp");
     std::fs::write(
         &main_sp,
-        format!(
-            "fun main() {{\n    println(\"Hello from {name}!\")\n}}\n"
-        ),
+        format!("fun main() {{\n    println(\"Hello from {name}!\")\n}}\n"),
     )
     .with_context(|| format!("failed to write {}", main_sp.display()))?;
 

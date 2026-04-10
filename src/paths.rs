@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Resolved XDG Base Directory paths for facet.
 ///
@@ -67,7 +67,7 @@ impl Paths {
 ///
 /// Uses the env var if set and non-empty, otherwise falls back to `~/default_suffix`.
 /// Appends `facet` as the application subdirectory.
-fn xdg_dir(env_var: &str, home: &PathBuf, default_suffix: &str) -> PathBuf {
+fn xdg_dir(env_var: &str, home: &Path, default_suffix: &str) -> PathBuf {
     let base = match std::env::var(env_var) {
         Ok(val) if !val.is_empty() => PathBuf::from(val),
         _ => home.join(default_suffix),

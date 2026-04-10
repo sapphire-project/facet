@@ -24,8 +24,7 @@ impl GlobalConfig {
         }
         let raw = std::fs::read_to_string(&path)
             .with_context(|| format!("failed to read {}", path.display()))?;
-        toml::from_str(&raw)
-            .with_context(|| format!("failed to parse {}", path.display()))
+        toml::from_str(&raw).with_context(|| format!("failed to parse {}", path.display()))
     }
 
     /// Persist to disk, creating parent directories as needed.
@@ -35,8 +34,7 @@ impl GlobalConfig {
             std::fs::create_dir_all(parent)
                 .with_context(|| format!("failed to create {}", parent.display()))?;
         }
-        let contents = toml::to_string_pretty(self)
-            .context("failed to serialise global config")?;
+        let contents = toml::to_string_pretty(self).context("failed to serialise global config")?;
         std::fs::write(&path, contents)
             .with_context(|| format!("failed to write {}", path.display()))
     }
