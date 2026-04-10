@@ -95,6 +95,9 @@ enum Command {
     /// Start an interactive Sapphire console (REPL)
     Console,
 
+    /// Print facet and active Sapphire versions
+    Version,
+
     /// Manage facet itself
     #[command(name = "self")]
     SelfCmd {
@@ -117,6 +120,17 @@ fn main() {
         Some(Command::Test { args }) => commands::test::run(args),
         Some(Command::Lint { args }) => commands::lint::run(args),
         Some(Command::Console) => commands::console::run(),
+        Some(Command::Version) => {
+            println!("facet {}", env!("CARGO_PKG_VERSION"));
+            let paths = paths::Paths::new();
+            let cwd = std::env::current_dir().unwrap_or_default();
+            match version::resolve(&cwd, &paths) {
+                Ok(Some(r)) => println!("sapphire {}", r.version),
+                Ok(None) => println!("sapphire (none)"),
+                Err(_) => println!("sapphire (unknown)"),
+            }
+            Ok(())
+        }
         Some(Command::SelfCmd { subcommand }) => commands::self_cmd::run(subcommand),
         None => {
             if cli.passthrough.is_empty() {
