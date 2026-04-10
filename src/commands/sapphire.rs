@@ -99,10 +99,7 @@ fn list_local(paths: &Paths) -> anyhow::Result<()> {
 
 fn use_version(paths: &Paths, version: &str) -> anyhow::Result<()> {
     let version = version.trim_start_matches('v');
-    let bin = paths
-        .toolchain_dir(version)
-        .join("bin")
-        .join("sapphire");
+    let bin = paths.toolchain_dir(version).join("bin").join("sapphire");
 
     if !bin.exists() {
         anyhow::bail!(
@@ -124,8 +121,7 @@ fn uninstall(paths: &Paths, version: &str) -> anyhow::Result<()> {
         anyhow::bail!("Sapphire {version} is not installed");
     }
 
-    std::fs::remove_dir_all(&dir)
-        .with_context(|| format!("failed to remove {}", dir.display()))?;
+    std::fs::remove_dir_all(&dir).with_context(|| format!("failed to remove {}", dir.display()))?;
 
     // If this was the global default, clear it so we don't point at a ghost.
     let mut config = GlobalConfig::load(paths)?;
