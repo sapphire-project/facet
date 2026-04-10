@@ -46,23 +46,6 @@ enum Command {
         template: String,
     },
 
-    /// Add a dependency to the current project
-    Add {
-        /// Package name(s) to add
-        #[arg(required = true)]
-        packages: Vec<String>,
-    },
-
-    /// Remove a dependency from the current project
-    Remove {
-        /// Package name(s) to remove
-        #[arg(required = true)]
-        packages: Vec<String>,
-    },
-
-    /// Install project dependencies
-    Install,
-
     /// Run a project script or binary
     Run {
         /// Script or binary to run
@@ -106,9 +89,6 @@ fn main() {
     let result = match cli.command {
         Some(Command::Sapphire { subcommand }) => commands::sapphire::run(subcommand),
         Some(Command::New { name, template }) => commands::new::run(name, template),
-        Some(Command::Add { packages }) => commands::add::run(packages),
-        Some(Command::Remove { packages }) => commands::remove::run(packages),
-        Some(Command::Install) => commands::install::run(),
         Some(Command::Run { script, args }) => commands::run::run(script, args),
         Some(Command::Test { args }) => commands::test::run(args),
         Some(Command::Lint { args }) => commands::lint::run(args),
