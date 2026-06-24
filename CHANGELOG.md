@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0] - 2026-06-23
+
+### Changed
+
+- `facet sapphire install <version>` now sets the installed version as the global default when installing the first Sapphire toolchain and no default is configured
+- GitHub Releases now use the matching `CHANGELOG.md` entry as the release body
+
 ## [0.2.0] - 2026-04-10
 
 ### Added
