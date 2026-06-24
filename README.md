@@ -13,7 +13,7 @@ Or download a pre-built binary from the [releases page](https://github.com/sapph
 ## Quick start
 
 ```sh
-# Install a Sapphire toolchain
+# Install a Sapphire toolchain (the first install becomes the default)
 facet sapphire install latest
 
 # Create a new project
@@ -43,7 +43,7 @@ facet run
 |---------|-------------|
 | `facet sapphire list` | List installed Sapphire versions |
 | `facet sapphire list --remote` | List available versions on GitHub |
-| `facet sapphire install <version>` | Install a Sapphire version |
+| `facet sapphire install <version>` | Install a Sapphire version (first install becomes the default) |
 | `facet sapphire uninstall <version>` | Uninstall a Sapphire version |
 | `facet sapphire use <version>` | Switch the global default to an installed version |
 | `facet sapphire default <version>` | Set the global default version (without install check) |

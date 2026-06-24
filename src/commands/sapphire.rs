@@ -17,9 +17,13 @@ pub fn run(subcommand: SapphireCommand) -> anyhow::Result<()> {
             }
         }
         SapphireCommand::Install { version } => {
+            let had_installed_toolchains = has_installed_toolchains(&paths)?;
             let resolved = download::install(&version, &paths.toolchains_dir())?;
             if resolved != version && version != "latest" {
                 println!("Installed Sapphire {resolved}");
+            }
+            if maybe_set_default_for_first_install(&paths, &resolved, had_installed_toolchains)? {
+                println!("Set default Sapphire version to {resolved}");
             }
         }
         SapphireCommand::Uninstall { version } => {
@@ -97,6 +101,43 @@ fn list_local(paths: &Paths) -> anyhow::Result<()> {
     Ok(())
 }
 
+fn has_installed_toolchains(paths: &Paths) -> anyhow::Result<bool> {
+    let toolchains_dir = paths.toolchains_dir();
+    if !toolchains_dir.exists() {
+        return Ok(false);
+    }
+
+    for entry in std::fs::read_dir(&toolchains_dir)
+        .with_context(|| format!("failed to read {}", toolchains_dir.display()))?
+    {
+        let entry = entry?;
+        if entry.file_type()?.is_dir() {
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
+}
+
+fn maybe_set_default_for_first_install(
+    paths: &Paths,
+    version: &str,
+    had_installed_toolchains: bool,
+) -> anyhow::Result<bool> {
+    if had_installed_toolchains {
+        return Ok(false);
+    }
+
+    let mut config = GlobalConfig::load(paths)?;
+    if config.toolchain.default.is_some() {
+        return Ok(false);
+    }
+
+    config.toolchain.default = Some(version.to_string());
+    config.save(paths)?;
+    Ok(true)
+}
+
 fn use_version(paths: &Paths, version: &str) -> anyhow::Result<()> {
     let version = version.trim_start_matches('v');
     let bin = paths.toolchain_dir(version).join("bin").join("sapphire");
@@ -149,4 +190,64 @@ fn list_remote() -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::set_default_version;
+
+    fn temp_paths() -> (tempfile::TempDir, Paths) {
+        let dir = tempfile::tempdir().unwrap();
+        let paths = Paths::with_base(dir.path());
+        (dir, paths)
+    }
+
+    #[test]
+    fn has_installed_toolchains_is_false_when_dir_is_missing() {
+        let (_dir, paths) = temp_paths();
+        assert!(!has_installed_toolchains(&paths).unwrap());
+    }
+
+    #[test]
+    fn has_installed_toolchains_detects_toolchain_dir() {
+        let (_dir, paths) = temp_paths();
+        std::fs::create_dir_all(paths.toolchain_dir("1.2.3")).unwrap();
+
+        assert!(has_installed_toolchains(&paths).unwrap());
+    }
+
+    #[test]
+    fn first_install_sets_default_when_missing() {
+        let (_dir, paths) = temp_paths();
+
+        let changed = maybe_set_default_for_first_install(&paths, "1.2.3", false).unwrap();
+
+        assert!(changed);
+        let config = GlobalConfig::load(&paths).unwrap();
+        assert_eq!(config.toolchain.default.as_deref(), Some("1.2.3"));
+    }
+
+    #[test]
+    fn first_install_preserves_existing_default() {
+        let (_dir, paths) = temp_paths();
+        set_default_version(&paths, "1.0.0").unwrap();
+
+        let changed = maybe_set_default_for_first_install(&paths, "2.0.0", false).unwrap();
+
+        assert!(!changed);
+        let config = GlobalConfig::load(&paths).unwrap();
+        assert_eq!(config.toolchain.default.as_deref(), Some("1.0.0"));
+    }
+
+    #[test]
+    fn later_install_does_not_change_default() {
+        let (_dir, paths) = temp_paths();
+
+        let changed = maybe_set_default_for_first_install(&paths, "2.0.0", true).unwrap();
+
+        assert!(!changed);
+        let config = GlobalConfig::load(&paths).unwrap();
+        assert!(config.toolchain.default.is_none());
+    }
 }
